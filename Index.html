@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>দ্য ৪৮ লজ অফ পাওয়ার - এক্সপ্লোরার</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans Bengali', sans-serif; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        .law-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .law-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .modal-enter { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Custom scrollbar for aesthetic */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f5f5f4; }
+        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800 antialiased">
+
+    <!-- Chosen Palette: Warm Neutrals (Stone) with Deep Crimson/Gold Accents reflecting power and history -->
+    <!-- Application Structure Plan: A dashboard-style layout. Top section provides context and a visual breakdown of laws by category using a Chart.js Donut chart. The chart is interactive and acts as a filter. Below is a search/filter bar followed by a responsive grid of cards for each law. Clicking a card opens a modal for detailed reading. This structure prevents cognitive overload from 48 long texts and allows strategic exploration. -->
+    <!-- Visualization & Content Choices: Categorical Donut Chart (Chart.js) -> Goal: Organize & Filter -> Shows distribution of laws across 4 themes (Image, Strategy, Defense, Control) -> Clicking segments filters the grid. Grid layout -> Goal: Inform & Browse -> Easy scanning of 48 laws. Modal -> Goal: Detail reading -> Keeps user on same page without losing context. -> Confirming NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="bg-stone-900 text-stone-100 shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold tracking-wide">&#9819; দ্য ৪৮ লজ অফ পাওয়ার</h1>
+            <div class="text-sm text-stone-400 hidden sm:block">রবার্ট গ্রীন - ইন্টারেক্টিভ বিশ্লেষণ</div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <section class="mb-12 bg-white rounded-xl shadow-sm border border-stone-200 p-6 md:p-8 flex flex-col md:flex-row gap-8 items-center">
+            <div class="w-full md:w-1/2">
+                <h2 class="text-3xl font-bold text-stone-900 mb-4">ক্ষমতার দর্শন ও প্রয়োগ</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    রবার্ট গ্রীনের এই বইটি ক্ষমতা অর্জন, রক্ষা এবং ব্যবহারের কৌশল নিয়ে লেখা। ইতিহাস থেকে বিভিন্ন সফল এবং ব্যর্থ ব্যক্তিত্বের উদাহরণ টেনে ৪৮টি অমোঘ নিয়মের বর্ণনা দেওয়া হয়েছে। এই অ্যাপ্লিকেশনটির মাধ্যমে আপনি আইনগুলোকে বিভিন্ন থিমের ভিত্তিতে বিশ্লেষণ ও অন্বেষণ করতে পারবেন।
+                </p>
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <div class="bg-stone-100 p-4 rounded-lg text-center border border-stone-200">
+                        <div class="text-3xl font-bold text-red-800" id="statTotal">৪৮</div>
+                        <div class="text-sm text-stone-500 font-semibold mt-1">মোট আইন</div>
+                    </div>
+                    <div class="bg-stone-100 p-4 rounded-lg text-center border border-stone-200">
+                        <div class="text-3xl font-bold text-amber-700" id="statVisible">৪৮</div>
+                        <div class="text-sm text-stone-500 font-semibold mt-1">প্রদর্শিত হচ্ছে</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="w-full md:w-1/2 flex flex-col items-center justify-center">
+                <h3 class="text-lg font-bold text-stone-700 mb-2 text-center">আইনের শ্রেণীবিভাগ (ফিল্টার করতে ক্লিক করুন)</h3>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-8 sticky top-[72px] z-30 bg-stone-50/95 backdrop-blur-sm py-4 border-b border-stone-200">
+            <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
+                <div class="relative w-full md:w-1/2">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-stone-400 text-xl">&#9906;</span>
+                    <input type="text" id="searchInput" placeholder="আইন খুঁজুন (যেমন: উদ্দেশ্য গোপন রাখুন)..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-stone-300 focus:outline-none focus:ring-2 focus:ring-red-800 focus:border-transparent transition-shadow text-stone-700">
+                </div>
+                <div class="w-full md:w-auto flex gap-2">
+                    <select id="categorySelect" class="w-full md:w-auto px-4 py-3 rounded-lg border border-stone-300 focus:outline-none focus:ring-2 focus:ring-red-800 bg-white text-stone-700 font-medium cursor-pointer">
+                        <option value="all">সকল শ্রেণীবিভাগ</option>
+                        <option value="ভাবমূর্তি ও সুনাম">ভাবমূর্তি ও সুনাম</option>
+                        <option value="কৌশল ও মনস্তত্ত্ব">কৌশল ও মনস্তত্ত্ব</option>
+                        <option value="ক্ষমতা ও নিয়ন্ত্রণ">ক্ষমতা ও নিয়ন্ত্রণ</option>
+                        <option value="আত্মরক্ষা ও সতর্কতা">আত্মরক্ষা ও সতর্কতা</option>
+                    </select>
+                    <button id="resetBtn" class="px-4 py-3 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold rounded-lg transition-colors hidden">&#10227;</button>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div id="noResults" class="hidden py-12 text-center text-stone-500">
+                <div class="text-4xl mb-3">&#9888;</div>
+                <h3 class="text-xl font-bold">কোনো ফলাফল পাওয়া যায়নি</h3>
+                <p>ভিন্ন কোনো শব্দ দিয়ে খোঁজার চেষ্টা করুন।</p>
+            </div>
+            <div id="lawsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            </div>
+        </section>
+
+    </main>
+
+    <div id="lawModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-stone-900/80 backdrop-blur-sm p-4">
+        <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] modal-enter relative">
+            <button id="closeModal" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-stone-100 hover:bg-red-100 text-stone-600 hover:text-red-800 rounded-full text-xl font-bold transition-colors">&#10005;</button>
+            
+            <div class="p-6 md:p-8 overflow-y-auto">
+                <div id="modalCategory" class="inline-block px-3 py-1 rounded-full text-xs font-bold tracking-wide mb-4"></div>
+                <h2 id="modalTitle" class="text-2xl md:text-3xl font-bold text-stone-900 mb-6 leading-tight border-b border-stone-100 pb-4"></h2>
+                <div class="flex gap-4">
+                    <div class="hidden sm:flex flex-col items-center">
+                        <div class="w-12 h-12 bg-stone-900 text-stone-100 rounded-full flex items-center justify-center text-xl font-bold shadow-inner" id="modalNumber"></div>
+                        <div class="w-px h-full bg-stone-200 mt-4"></div>
+                    </div>
+                    <div class="text-stone-700 text-lg leading-relaxed pt-2" id="modalText">
+                    </div>
+                </div>
+            </div>
+            <div class="bg-stone-50 p-4 border-t border-stone-200 flex justify-end">
+                <button id="closeModalBtn" class="px-6 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-lg transition-colors">বন্ধ করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-stone-900 text-stone-400 py-6 text-center mt-12">
+        <p>&copy; রবার্ট গ্রীনের "The 48 Laws of Power" অবলম্বনে তৈরি।</p>
+    </footer>
+
+    <script>
+        const lawsData = [
+            { id: 1, title: "কখনো আপনার বসকে ছাড়িয়ে যাবেন না (Never Outshine the Master)", text: "সবসময় আপনার ওপরের স্তরের মানুষদের স্বাচ্ছন্দ্যে শ্রেষ্ঠ বোধ করতে দিন। তাদের খুশি করতে গিয়ে নিজের প্রতিভা খুব বেশি প্রদর্শন করবেন না, কারণ এতে তারা ভীত বা অনিরাপদ বোধ করতে পারে।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 2, title: "বন্ধুদের ওপর অতিরিক্ত ভরসা করবেন না, শত্রুকে ব্যবহার করতে শিখুন", text: "বন্ধুরা আপনাকে দ্রুত ধোঁকা দিতে পারে কারণ তারা সহজে ঈর্ষাকাতর হয়। বরং একজন প্রাক্তন শত্রুকে কাজে লাগান, সে বন্ধুর চেয়েও বেশি বিশ্বস্ত হবে কারণ তার নিজেকে প্রমাণ করার তাগিদ থাকে।", category: "আত্মরক্ষা ও সতর্কতা" },
+            { id: 3, title: "আপনার উদ্দেশ্য গোপন রাখুন (Conceal Your Intentions)", text: "মানুষকে অন্ধকারে রাখুন। তারা যদি আপনার উদ্দেশ্য না জানে, তবে তারা কোনো প্রতিরোধ গড়ে তুলতে পারবে না। যখন তারা বুঝতে পারবে আপনি কী করছেন, তখন অনেক দেরি হয়ে যাবে।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 4, title: "প্রয়োজনের চেয়ে কম কথা বলুন (Always Say Less Than Necessary)", text: "আপনি যখন কথা দিয়ে মানুষকে মুগ্ধ করার চেষ্টা করেন, যত বেশি বলবেন ততই আপনাকে সাধারণ মনে হবে। ক্ষমতাশালী ব্যক্তিরা কম কথা বলে মানুষকে বিভ্রান্ত ও আতঙ্কিত রাখে।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 5, title: "সম্মানের ওপর অনেক কিছু নির্ভর করে—এটি জীবন দিয়ে রক্ষা করুন", text: "সম্মানই ক্ষমতার মূল ভিত্তি। এর মাধ্যমেই আপনি জয়ী হতে পারেন। একবার এটি নষ্ট হলে আপনি চারদিক থেকে আক্রান্ত হবেন। আপনার সম্মানকে অভেদ্য করে তুলুন।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 6, title: "যেকোনো মূল্যে মানুষের মনোযোগ আকর্ষণ করুন", text: "সবকিছুই তার দৃশ্যমানতার ওপর বিচার করা হয়। ভিড়ের মধ্যে হারিয়ে যাবেন না। নিজেকে রঙিন, রহস্যময় বা বিতর্কিত করে তুলে ধরুন যাতে সবার নজর আপনার ওপর থাকে।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 7, title: "অন্যকে দিয়ে কাজ করিয়ে নিন, কিন্তু কৃতিত্ব নিজে নিন", text: "আপনার সময় ও শক্তি বাঁচাতে অন্যের জ্ঞান ও শ্রম ব্যবহার করুন। এতে আপনাকে অলৌকিক ক্ষমতার অধিকারী মনে হবে এবং যারা কাজ করেছে তাদের মানুষ ভুলে যাবে।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 8, title: "অন্যকে আপনার কাছে আসতে বাধ্য করুন—প্রয়োজনে টোপ ব্যবহার করুন", text: "আপনি যখন অন্যকে দিয়ে কিছু করান, নিয়ন্ত্রণ আপনার হাতে থাকে। আপনার শত্রুকে তার পরিকল্পনা ত্যাগ করিয়ে আপনার সীমানায় আসতে বাধ্য করুন।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 9, title: "কাজের মাধ্যমে জিতুন, তর্কের মাধ্যমে নয়", text: "তর্কের মাধ্যমে যে জয় আসে তা ক্ষণস্থায়ী এবং এটি বিরক্তি তৈরি করে। তার চেয়ে আপনার কাজের মাধ্যমে নিজের মতামত প্রমাণ করুন, কোনো কথা না বলে।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 10, title: "সংক্রমণ: অসুখী ও দুর্ভাগাদের এড়িয়ে চলুন", text: "কারো আবেগীয় অবস্থা গুটিবসন্তের মতো সংক্রামক হতে পারে। যারা সবসময় সমস্যায় জর্জরিত তাদের সাহায্য করতে গিয়ে আপনি নিজেই ডুবে মরবেন। সবসময় সৌভাগ্যবান ও আনন্দিত মানুষের সঙ্গ নিন।", category: "আত্মরক্ষা ও সতর্কতা" },
+            { id: 11, title: "মানুষকে আপনার ওপর নির্ভরশীল করে তুলতে শিখুন", text: "আপনার স্বাধীনতা বজায় রাখতে হলে আপনাকে এমন হতে হবে যে মানুষ আপনাকে ছাড়া চলতে পারবে না। তাদের সুখ ও সমৃদ্ধি আপনার ওপর নির্ভর করলে আপনি অপরাজেয় থাকবেন।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 12, title: "শিকারকে নিরস্ত্র করতে কৌশলী সততা ও উদারতা ব্যবহার করুন", text: "একটি সৎ কাজ বা উপহার আপনার শত্রুর সন্দেহ দূর করে দেয়। একবার তাদের সুরক্ষা দেয়াল ভেঙে গেলে আপনি সহজেই তাদের ওপর প্রভাব খাটাতে পারবেন।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 13, title: "সাহায্য চাইলে মানুষের স্বার্থের কথা বলুন, করুণার নয়", text: "কারো সাহায্য চাইলে তাকে আপনার উপকার বা অতীতের দয়ার কথা মনে করাবেন না। বরং এমন কিছু দেখান যাতে তার নিজের লাভ আছে। এতে সে সানন্দে সাহায্য করবে।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 14, title: "বন্ধুর মতো মিশুন, গোয়েন্দার মতো কাজ করুন", text: "আপনার প্রতিপক্ষ সম্পর্কে জানা অত্যন্ত জরুরি। বন্ধু সেজে তাদের সাথে মিশুন এবং পরোক্ষ প্রশ্নে তাদের গোপন তথ্য জেনে নিন।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 15, title: "শত্রুকে সম্পূর্ণ ধ্বংস করে দিন (Crush Your Enemy Totally)", text: "শত্রুকে যদি অল্প জীবিত রাখা হয় তবে সে সুযোগ বুঝে প্রতিশোধ নেবে। তাকে কেবল শারীরিকভাবে নয়, আত্মিকভাবেও সম্পূর্ণ চূর্ণ করে দিন।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 16, title: "অনুপস্থিতি ব্যবহার করে শ্রদ্ধা ও সম্মান বৃদ্ধি করুন", text: "অতিরিক্ত সহজলভ্যতা আপনার দাম কমিয়ে দেয়। আপনি যত বেশি পরিচিত হবেন, ততই আপনাকে সাধারণ মনে হবে। সাময়িকভাবে অদৃশ্য হয়ে গেলে আপনার গুরুত্ব বহুগুণ বেড়ে যাবে।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 17, title: "অন্যদের অনিশ্চয়তায় রাখুন: রহস্যময় পরিবেশ তৈরি করুন", text: "মানুষ অভ্যাসের দাস এবং অন্যের কাজ অনুমান করতে পছন্দ করে। আপনি যদি অনিশ্চিত আচরণ করেন তবে তারা আপনাকে বুঝতে না পেরে ক্লান্ত হয়ে পড়বে।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 18, title: "সুরক্ষার জন্য দেয়াল তুলবেন না—একাকীত্ব বিপজ্জনক", text: "নিরাপত্তার জন্য নিজেকে আলাদা করে ফেলা মানে হলো আপনি তথ্যের উৎস থেকে বিচ্ছিন্ন হয়ে পড়লেন। এটি আপনাকে আরও সহজ শিকারে পরিণত করে। ভিড়ের মধ্যে থাকাই সবচেয়ে নিরাপদ।", category: "আত্মরক্ষা ও সতর্কতা" },
+            { id: 19, title: "জানুন আপনি কার সাথে কাজ করছেন—ভুল মানুষকে চটাবেন না", text: "দুনিয়াতে অনেক ধরণের মানুষ আছে। কারো কারো ওপর আঘাত করলে তারা সারা জীবন আপনার পেছনে লেগে থাকবে। আপনার শিকার বা প্রতিপক্ষকে ভালো করে চিনুন।", category: "আত্মরক্ষা ও সতর্কতা" },
+            { id: 20, title: "কারো পক্ষে অবস্থান নেবেন না (Do Not Commit to Anyone)", text: "কোনো পক্ষ নিয়ে নিজেকে আটকে ফেলবেন না। নিরপেক্ষ থাকলে আপনি সবার ওপরে থাকতে পারবেন এবং অন্যদের একে অপরের বিরুদ্ধে লেলিয়ে দিতে পারবেন।", category: "আত্মরক্ষা ও সতর্কতা" },
+            { id: 21, title: "বোকাকে ধরতে বোকা সাজুন", text: "কাউকে যদি মনে করান যে সে আপনার চেয়ে বেশি বুদ্ধিমান, তবে সে তার সতর্কতা কমিয়ে দেবে। তখন আপনি সহজেই তাকে নিয়ন্ত্রণ করতে পারবেন।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 22, title: "আত্মসমর্পণের কৌশল ব্যবহার করুন: দুর্বলতাকে শক্তিতে রূপান্তর করুন", text: "যখন আপনি দুর্বল, তখন লড়াই করবেন না। আত্মসমর্পণ করুন। এতে আপনি শক্তি সঞ্চয়ের সময় পাবেন এবং শত্রুর মনে জয়ী হওয়ার মিথ্যে তৃপ্তি দিয়ে তাকে বিভ্রান্ত করতে পারবেন।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 23, title: "আপনার শক্তিকে কেন্দ্রীভূত করুন (Concentrate Your Forces)", text: "আপনার শক্তিকে এক জায়গায় সংহত রাখুন। অনেকগুলো ছোট ছোট লক্ষ্য না খুঁজে একটি বড় উৎসে আঘাত করুন যেখানে সাফল্যের সম্ভাবনা সবচেয়ে বেশি।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 24, title: "নিখুঁত রাজদরবারী সাজুন (Play the Perfect Courtier)", text: "ক্ষমতার রাজনীতিতে টিকে থাকতে হলে আপনাকে মিষ্টভাষী, মার্জিত এবং কৌশলী হতে হবে। সরাসরি ক্ষমতা না দেখিয়ে পরোক্ষভাবে তা পরিচালনা করুন।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 25, title: "নিজেকে নতুন করে নির্মাণ করুন (Recreate Yourself)", text: "সমাজ আপনাকে যে পরিচয় দিয়েছে তা মেনে নেবেন না। নিজের জন্য একটি আকর্ষণীয় ও শক্তিশালী ইমেজ তৈরি করুন যা মানুষের ওপর প্রভাব বিস্তার করবে।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 26, title: "আপনার হাত পরিষ্কার রাখুন (Keep Your Hands Clean)", text: "আপনাকে সবসময় ভদ্রতা ও কর্মদক্ষতার প্রতীক হতে হবে। কোনো ভুল বা নোংরা কাজের জন্য অন্য কাউকে বলির পাঁঠা হিসেবে ব্যবহার করুন যাতে আপনার সুনাম অক্ষুণ্ণ থাকে।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 27, title: "অনুসারী তৈরি করতে মানুষের বিশ্বাসের প্রয়োজনকে কাজে লাগান", text: "মানুষ সবসময় কোনো আদর্শ বা অলৌকিক কিছুতে বিশ্বাস করতে চায়। তাদের এই আকাঙ্ক্ষাকে কাজে লাগিয়ে নিজেকে একজন নেতার মতো উপস্থাপন করুন।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 28, title: "সাহসের সাথে কাজ শুরু করুন (Enter Action with Boldness)", text: "কোনো কাজে দ্বিধা থাকলে তা করবেন ফেব্রুয়ারি। সাহসিকতার সাথে করা ভুলে সম্মান পাওয়া যায়, কিন্তু ভীরুতায় লজ্জা ছাড়া আর কিছু নেই।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 29, title: "শেষ পর্যন্ত পরিকল্পনা করুন (Plan All the Way to the End)", text: "কেবল শুরুটা নয়, সম্ভাব্য সব বাধা এবং পরিণাম চিন্তা করে একদম শেষ পর্যন্ত পরিকল্পনা করুন। এতে আপনি ভাগ্যের ওপর নির্ভরশীল হবেন না।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 30, title: "আপনার অর্জনকে সহজ ও পরিশ্রমহীন দেখান", text: "আপনার সাফল্যকে এমনভাবে দেখান যেন এটি খুব সহজে অর্জন করেছেন। আপনার কষ্ট ও পরিশ্রম গোপন রাখুন, কারণ রহস্য আপনার ক্ষমতার ভাবমূর্তি বাড়ায়।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 31, title: "বিকল্পগুলো নিয়ন্ত্রণ করুন (Control the Options)", text: "মানুষকে সুযোগ দিন যে তারা বেছে নিচ্ছে, কিন্তু আসলে সব বিকল্পই যেন আপনার অনুকূলে থাকে এমন ব্যবস্থা করুন। এতে তারা ভাববে তারা স্বাধীন, কিন্তু কাজ করবে আপনার জন্য।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 32, title: "মানুষের কল্পনার সাথে খেলুন (Play to People’s Fantasies)", text: "কঠোর বাস্তব বড় যন্ত্রণাদায়ক। তাই মানুষ সবসময় মিথ্যে আশা বা সুন্দর কল্পনার পেছনে দৌড়ায়। যে মানুষকে স্বপ্ন দেখাতে পারে, ক্ষমতা তার হাতেই থাকে।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 33, title: "প্রত্যেকের দুর্বলতা বা স্ক্রু খুঁজে বের করুন", text: "প্রত্যেক মানুষেরই কোনো না কোনো গোপন দুর্বলতা বা শখ থাকে। সেটি খুঁজে বের করতে পারলেই আপনি তাকে আপনার ইশারায় নাচাতে পারবেন।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 34, title: "রাজার মতো আচরণ করুন যাতে আপনাকে রাজার মতোই দেখা হয়", text: "আপনি নিজেকে যেভাবে তুলে ধরবেন, মানুষ আপনাকে সেভাবেই মূল্যায়ন করবে। নিচু বা সাধারণ আচরণ করলে মানুষ আপনাকে শ্রদ্ধা করবে না।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 35, title: "সময়ের সঠিক ব্যবহার আয়ত্ত করুন (Master the Art of Timing)", text: "কখনো তাড়াহুড়ো দেখাবেন না। সঠিক সময়ের জন্য অপেক্ষা করতে শেখা এবং জোয়ার আসার সময় ঝাঁপিয়ে পড়াটাই ক্ষমতার বড় দক্ষতা।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 36, title: "যা আপনি পেতে পারেন না, তাকে অবজ্ঞা করুন", text: "কোনো ছোট সমস্যার দিকে মনোযোগ দিলে সেটি বড় হয়ে যায়। যা আপনার নাগালের বাইরে তা অবজ্ঞা করুন, কারণ মনোযোগ না দিলেই তার ক্ষমতা হারিয়ে যায়।", category: "আত্মরক্ষা ও সতর্কতা" },
+            { id: 37, title: "আকর্ষণীয় চাক্ষুষ দৃশ্য তৈরি করুন (Create Compelling Spectacles)", text: "চমকপ্রদ আয়োজন এবং প্রতীকী কাজ মানুষের মনে গভীর দাগ কাটে। যুক্তির চেয়ে চোখ ধাঁধানো দৃশ্য বেশি শক্তিশালী।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 38, title: "ভাবুন নিজের মতো কিন্তু আচরণ করুন সবার মতো", text: "আপনি যদি নিজেকে সমাজের চেয়ে অনেক বেশি আলাদা প্রমাণ করতে চান, তবে মানুষ আপনাকে বিপজ্জনক মনে করবে। সাধারণের সাথে মিশে যান এবং আপনার বিশেষ চিন্তাগুলো কেবল কাছের মানুষের জন্য রাখুন।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 39, title: "মাছ ধরতে জল ঘোলা করুন (Stir Up Waters to Catch Fish)", text: "ক্রোধ এবং আবেগ ক্ষমতার শত্রু। আপনি নিজে শান্ত থেকে আপনার শত্রুকে রাগান্বিত করুন। তারা যখন হিতাহিত জ্ঞান হারাবে, তখনই আপনি সুযোগ গ্রহণ করবেন।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 40, title: "যা বিনামূল্যে পাওয়া যায় তাকে ঘৃণা করুন (Despise the Free Lunch)", text: "বিনা মূল্যের জিনিসের আড়ালে সবসময় কোনো ঋণ বা দায়িত্ব লুকিয়ে থাকে। আপনার স্বাধীনতার জন্য ন্যায্য মূল্য পরিশোধ করুন।", category: "আত্মরক্ষা ও সতর্কতা" },
+            { id: 41, title: "বিখ্যাত ব্যক্তির জুতোয় পা দেবেন না", text: "আপনার পূর্বসূরি যদি খুব সফল হয়, তবে আপনাকে তার ছায়ায় থাকতে হবে। নিজের আলাদা পরিচয় এবং কৃতিত্ব তৈরি করতে ভিন্ন পথ বেছে নিন।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 42, title: "রাখালকে আঘাত করুন, তবেই ভেড়ারা পালাবে", text: "দলের ভেতরে সমস্যার মূলে থাকা প্রধান ব্যক্তিকে খুঁজে বের করুন এবং তাকে আলাদা করে ফেলুন। মূলে আঘাত করলে পুরো দল ছত্রভঙ্গ হয়ে যাবে।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 43, title: "অন্যের হৃদয় ও মন জয় করুন (Work on the Hearts and Minds)", text: "কাউকে জোর করলে তারা সুযোগ পেলেই বিদ্রোহ করবে। এমনভাবে তাদের প্রভাবিত করুন যেন তারা আপনার কথা মানতে বাধ্য বোধ করে এবং আপনার প্রতি অনুরক্ত থাকে।", category: "ক্ষমতা ও নিয়ন্ত্রণ" },
+            { id: 44, title: "আয়না প্রভাব ব্যবহার করে শত্রুকে বিভ্রান্ত করুন", text: "শত্রুর হুবহু আচরণ নকল করুন। এটি তাদের বিভ্রান্ত করবে এবং তারা বুঝতে পারবে না আপনি আসলে কী ভাবছেন।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 45, title: "পরিবর্তনের কথা বলুন, কিন্তু হুট করে পরিবর্তন আনবেন না", text: "মানুষ পুরনো অভ্যাসে অভ্যস্ত। হুট করে সব বদলে ফেললে বিদ্রোহ হবে। ধীরে ধীরে পরিবর্তনের সূচনা করুন এবং পুরনো রীতির প্রতি শ্রদ্ধা প্রদর্শন করুন।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 46, title: "কখনো খুব বেশি নিখুঁত দেখাবেন না (Never Appear Too Perfect)", text: "নিজের সামান্য খুঁত প্রকাশ করুন। কারণ খুব বেশি নিখুঁত মানুষকে সবাই হিংসা করে এবং আড়ালে তার ক্ষতি করতে চায়।", category: "ভাবমূর্তি ও সুনাম" },
+            { id: 47, title: "লক্ষ্য অর্জনের পর থেমে যান (In Victory, Learn When to Stop)", text: "সাফল্যের উত্তেজনায় আপনার লক্ষ্যের বাইরে চলে যাবেন না। জয়লাভ করার সাথে সাথেই আপনার চাল থামিয়ে দিন, নাহলে আপনি নতুন শত্রু তৈরি করবেন।", category: "কৌশল ও মনস্তত্ত্ব" },
+            { id: 48, title: "নিরাকার বা নমনীয় হোন (Assume Formlessness)", text: "নিজের কোনো নির্দিষ্ট রূপ বা কাঠামো তৈরি করবেন না যা শত্রু আক্রমণ করতে পারে। পানির মতো নমনীয় হোন যেন যেকোনো পরিস্থিতির সাথে আপনি মানিয়ে নিতে পারেন এবং আপনাকে ধরা না যায়।", category: "কৌশল ও মনস্তত্ত্ব" }
+        ];
+
+        const colors = {
+            "ভাবমূর্তি ও সুনাম": { bg: "bg-indigo-100", text: "text-indigo-800", chart: "#4f46e5" },
+            "কৌশল ও মনস্তত্ত্ব": { bg: "bg-emerald-100", text: "text-emerald-800", chart: "#059669" },
+            "ক্ষমতা ও নিয়ন্ত্রণ": { bg: "bg-rose-100", text: "text-rose-800", chart: "#e11d48" },
+            "আত্মরক্ষা ও সতর্কতা": { bg: "bg-amber-100", text: "text-amber-800", chart: "#d97706" }
+        };
+
+        let currentData = [...lawsData];
+        let categoryChart = null;
+
+        const lawsGrid = document.getElementById('lawsGrid');
+        const searchInput = document.getElementById('searchInput');
+        const categorySelect = document.getElementById('categorySelect');
+        const noResults = document.getElementById('noResults');
+        const statVisible = document.getElementById('statVisible');
+        const resetBtn = document.getElementById('resetBtn');
+
+        const modal = document.getElementById('lawModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalText = document.getElementById('modalText');
+        const modalNumber = document.getElementById('modalNumber');
+        const modalCategory = document.getElementById('modalCategory');
+        const closeBtns = [document.getElementById('closeModal'), document.getElementById('closeModalBtn')];
+
+        function initChart() {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            const categoryCounts = {
+                "ভাবমূর্তি ও সুনাম": lawsData.filter(l => l.category === "ভাবমূর্তি ও সুনাম").length,
+                "কৌশল ও মনস্তত্ত্ব": lawsData.filter(l => l.category === "কৌশল ও মনস্তত্ত্ব").length,
+                "ক্ষমতা ও নিয়ন্ত্রণ": lawsData.filter(l => l.category === "ক্ষমতা ও নিয়ন্ত্রণ").length,
+                "আত্মরক্ষা ও সতর্কতা": lawsData.filter(l => l.category === "আত্মরক্ষা ও সতর্কতা").length
+            };
+
+            categoryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categoryCounts),
+                    datasets: [{
+                        data: Object.values(categoryCounts),
+                        backgroundColor: Object.keys(categoryCounts).map(k => colors[k].chart),
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { font: { family: "'Noto Sans Bengali', sans-serif" } } }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const label = categoryChart.data.labels[index];
+                            categorySelect.value = label;
+                            filterData();
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderLaws(data) {
+            lawsGrid.innerHTML = '';
+            if (data.length === 0) {
+                lawsGrid.classList.add('hidden');
+                noResults.classList.remove('hidden');
+            } else {
+                lawsGrid.classList.remove('hidden');
+                noResults.classList.add('hidden');
+                
+                data.forEach(law => {
+                    const card = document.createElement('div');
+                    const catStyle = colors[law.category];
+                    card.className = `law-card bg-white p-6 rounded-xl border border-stone-200 cursor-pointer flex flex-col h-full`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="text-2xl font-bold text-stone-300">#${law.id}</span>
+                            <span class="text-xs font-bold px-2 py-1 rounded-md ${catStyle.bg} ${catStyle.text}">${law.category}</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-stone-800 leading-snug mb-3 flex-grow">${law.title.split('(')[0]}</h3>
+                        <p class="text-sm text-stone-500 line-clamp-3">${law.text}</p>
+                        <div class="mt-4 pt-4 border-t border-stone-100 text-red-800 text-sm font-semibold flex items-center group-hover:text-red-600">
+                            বিস্তারিত পড়ুন <span class="ml-1">&#10142;</span>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => openModal(law));
+                    lawsGrid.appendChild(card);
+                });
+            }
+            statVisible.textContent = data.length;
+        }
+
+        function filterData() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedCategory = categorySelect.value;
+
+            currentData = lawsData.filter(law => {
+                const matchesSearch = law.title.toLowerCase().includes(searchTerm) || law.text.toLowerCase().includes(searchTerm);
+                const matchesCategory = selectedCategory === 'all' || law.category === selectedCategory;
+                return matchesSearch && matchesCategory;
+            });
+
+            if(searchTerm !== '' || selectedCategory !== 'all') {
+                resetBtn.classList.remove('hidden');
+            } else {
+                resetBtn.classList.add('hidden');
+            }
+
+            renderLaws(currentData);
+        }
+
+        function openModal(law) {
+            const catStyle = colors[law.category];
+            modalCategory.className = `inline-block px-3 py-1 rounded-full text-xs font-bold tracking-wide mb-4 ${catStyle.bg} ${catStyle.text}`;
+            modalCategory.textContent = law.category;
+            
+            modalNumber.textContent = law.id;
+            modalTitle.textContent = law.title;
+            modalText.innerHTML = `<p>${law.text}</p>`;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Event Listeners
+        searchInput.addEventListener('input', filterData);
+        categorySelect.addEventListener('change', filterData);
+        
+        resetBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            categorySelect.value = 'all';
+            filterData();
+        });
+
+        closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Initialize
+        initChart();
+        renderLaws(lawsData);
+
+    </script>
+</body>
+</html>
